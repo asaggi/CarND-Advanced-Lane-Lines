@@ -167,9 +167,9 @@ class LaneDetector:
         cv2.imshow('lines-video',img)
         return points
 
-    def processVideo(self,fname):
+    def processVideo(self, fname):
         '''
-        Process video data from file and save result to results dir
+        Process video data from file and save result to op dir
         '''
         print('Video:',fname)
         self.retry_counter=0
@@ -177,7 +177,7 @@ class LaneDetector:
         cap = cv2.VideoCapture(fname)
         # Define the codec and create VideoWriter object
         fourcc = cv2.VideoWriter_fourcc(*'X264')
-        video_out = cv2.VideoWriter('output_images/'+fname.split('/')[-1],fourcc, 25, (1280,720))
+        out = cv2.VideoWriter('output_images/'+fname, fourcc, 25, (1280,720))
 
         if cap.isOpened():
             ret, img = cap.read()
@@ -197,14 +197,17 @@ class LaneDetector:
                 self.retry_counter=0
                 print('process as single image')
                 res=self.processSingleImage(img)
+
             # write result
             video_out.write(res)
             #Show result
             cv2.imshow('Result',res)
             cv2.waitKey(1)
+
         cap.release()
         video_out.release()
         cv2.destroyAllWindows()
+
 
     def undistort(self,img):
         '''
@@ -429,9 +432,8 @@ def main():
         cv2.imshow('Result',res)
         cv2.waitKey(250)
 
-    #Process all videos
-    for fvideo in glob.glob('project_video*.mp4'):
-        det.processVideo(fvideo)
+    #Process video
+    det.processVideo('project_video.mp4')
 
 if __name__ == '__main__':
     main()
