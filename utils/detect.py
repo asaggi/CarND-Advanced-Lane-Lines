@@ -424,7 +424,7 @@ def main():
         #Do processing
         res=det.processSingleImage(img)
         #Write result
-        cv2.imwrite('results/'+fimg.split('/')[-1],res)
+        cv2.imwrite('output_images/'+fimg.split('/')[-1],res)
         #Show result
         cv2.imshow('Result',res)
         cv2.waitKey(250)
