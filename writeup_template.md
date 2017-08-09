@@ -1,10 +1,12 @@
-## Writeup Template
+## CarND-Advanced-Lane-Lines
 
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
----
 
 **Advanced Lane Finding Project**
+
+Scripts:
+
+- `calib.py` - Scxript to display and save camera calibration
+- `detect.py` - script to display and save detection pipeline
 
 The goals / steps of this project are the following:
 
@@ -19,109 +21,169 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/undistort_output.png "Undistorted"
+[image0]: ./output_images/calib_example.jpg "Undistorted"
+[image1]: ./camera_cal/calibration9.jpg "Distorted"
+
 [image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
+[image7]: ./output_images/distortion.jpg "Distortion"
+[image8]: ./output_images/persepective.jpg "Perspective"
+[image9]: ./output_images/mask.jpg "Mask"
+[image10]: ./output_images/transformed.jpg "Transformed"
+[image11]: ./output_images/binary.jpg "Binary"
+[image12]: ./output_images/lines.jpg "Lines"
+[image13]: ./output_images/lines-video.jpg "Lines-video"
 
-## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
-
-### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
-
----
-
-### Writeup / README
-
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
-
-You're reading it!
+[image3]: ./output_images/test1.jpg "Binary Example"
+[image4]: ./output_images/test2.jpg "Binary Example"
+[image5]: ./output_images/test3.jpg "Binary Example"
+[image6]: ./output_images/test4.jpg "Binary Example"
+[image20]: ./output_images/test5.jpg "Binary Example"
+[image21]: ./output_images/test6.jpg "Binary Example"
+[image22]: ./output_images/straight_lines1.jpg "Binary Example"
+[image23]: ./output_images/straight_lines2.jpg "Binary Example"
+[video1]: ./output_images/project_video.mp4 "Video"
 
 ### Camera Calibration
 
-#### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
+#### 1. Camera calibration is done in utils/calibrate.py. Script loads every image that match following pattern: `camera_cal/*.jpg.`
 
-The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).  
+Termination criteria are defined as follows.  
+`criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)`
 
-I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
+Here I am assuming the chessboard is fixed on the (6, 9) plane at z=0, such that the object points are the same for each calibration image.  Here I use 3D reference coordinates and arrays to store data (calibrate.py:11).
+`objp = np.zeros((6*9,3), np.float32)`
 
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
+Then I iterate through all the images saved in `camera_cal/*.jpg` and try to find chess board on each. If found, I add points to each array and display. An image for reference to generate output.
 
 ![alt text][image1]
+![alt text][image0]
+
+Then we distort all windows and do actual calibration: (calibrate.py:40).
+
+`cv2.destroyAllWindows()`
+
+After that, this data is dumped into a JSON format for the next script (calibrate.py:51).
 
 ### Pipeline (single images)
+Pipeline is done in utils/detect.py. Script loads every image that match following pattern: `test_images/*.jpg` and then loads project_video.mp4.
 
-#### 1. Provide an example of a distortion-corrected image.
+#### The pipeline for images or first frame of video is following  (utils/detect.py:348):
 
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
-![alt text][image2]
+- undistortion.  
+- perspective transform
+- binarization
+- line fitting
+- calculate curvature and position
 
-#### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
+#### 1. Distortion correction
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+Distortion is corrected using OpenCV `cv2.undistort` function (utils/detect.py:352) with provided camera calibration data (utils/detect.py:12). Images before and after distortion correction are shown below
 
+![alt text][image7]
+
+#### 2. Perspective transform
+
+Perspective transform is done using `cv2.getPerspectiveTransform` and `cv2.warpPerspective` (utils/detect.py:229 - 230). Input points are defined as follows: (top left = 0,0, bottom right = 1,1)
+
+- 0.16, 1
+- 0.45, 0.63
+- 0.55, 0.63
+- 0.84, 1
+
+![alt text][image8]
+
+4 points used to compute transformation matrix.
+
+![alt text][image9]
+Images are masked above 0.63 and 10% from bottom (utils/detect.py:233).
+
+![alt text][image10].  
+Image transformed to top view using warp perspective (utils/detect.py:337). 
+
+#### 3. Binarization  (utils/detect.py:30)
+
+Binarization is done in following steps:
+
+- Blur with 5x5 kernel using `cv2.filter2D` (utils/detect.py:38). 
+- Equalize histogram (utils/detect.py:40)
+- Convert to YUV colorspace (utils/detect.py:41)
+- Use cv2.equalizeHist with Y channel (utils/detect.py:42)
+- Convert back to RGB (utils/detect.py:43)
+- Find white lines
+- Leave only G channel
+- Black all values below 250 and set rest to 255  (utils/detect.py:48)
+- Find yellow lines 
+- Use V from YUV
+- Blur with 5x5
+- Apply sobel in x and threshold (utils/detect.py:56-57)
+- Merge results from 3 and 4 (utils/detect.py:60)
+
+![alt text][image11].
+
+#### 4. Line fitting (utils/detect.py:63)
+
+Line fitting for single image or first frame of video works as follows:
+
+* Set center = width/2.  
+* For each line in image starting from bottom:
+	* Store index of each none zero point in x_val_hist
+	* Store in x_val_hist index of each none zero point from row
+	* If len of x_val_hist is greater than 0:
+		* Group points to left/right line according to position to center
+	* If there are points in left group:
+		* Compute average
+	* Add point to points
+	* Set center = average + width*0.2
+* If there are points in left group:
+	* Compute mean
+	* Add point to points
+
+Image below shows red, green and blue dots. Red and blue are points for left and right line fitting respectively. Green is the position of center which discriminates left from right points.
+
+![alt text][image12]
+
+#### 5. Line fitting for a video frame (utils/detect.py:170):
+
+* For every 10th row of frame starting from bottom:
+	* Compute min, max of ROI for x, for left and right lines to search for points (lxmin, lxmax, rxmin, rxmax)
+	* Store in x_val_hist index of each none zero point from row
+	* If len of x_val_hist is greater than 5:
+		* Group points to left/right line according to position to lxmin, lxmax and rxmin, rxmax
+	* If there are points in left group:
+	* Compute average
+	* Add point to points
+	* Set center = average + width*0.2
+	* If there are points in left group:
+		* Compute mean
+	* Add point to points
+	* If there are less than 10 points in left or right line 25 times, single image line fitting is made.
+
+![alt text][image13]
+
+#### 5. Calculating radius / curvature and position (utils/detect.py:244)
+
+All radius/position related computations are made in `computeAndShow` method . Curvature is computed using code from Udacity. Position is obtained by computing the difference between center of image and center of lane in pixels. Then it is converted to meters using pixels to meters factor for x axis.
+
+#### 6. Results
 ![alt text][image3]
-
-#### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
-
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
-
-```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
-```
-
-This resulted in the following source and destination points:
-
-| Source        | Destination   | 
-|:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
-
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
-
 ![alt text][image4]
-
-#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
-
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
-
 ![alt text][image5]
-
-#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
-
-I did this in lines # through # in my code in `my_other_file.py`
-
-#### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
-
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
-
 ![alt text][image6]
-
+![alt text][image20]
+![alt text][image21]
 ---
 
 ### Pipeline (video)
 
-#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
-
-Here's a [link to my video result](./project_video.mp4)
+`project_video.mp4` is available in output_images directory.
 
 ---
 
 ### Discussion
 
-#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+#### 1. This solution works good on the project_video example, but was not able to perform well on `challenge` and `harder_challenge`.
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+We can improve the detection by:
+
+- Fine tunning of binarization
+- Support for small radius turns - larger ROI
