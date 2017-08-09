@@ -177,7 +177,7 @@ class LaneDetector:
         cap = cv2.VideoCapture(fname)
         # Define the codec and create VideoWriter object
         fourcc = cv2.VideoWriter_fourcc(*'X264')
-        video_out = cv2.VideoWriter('results/'+fname.split('/')[-1],fourcc, 25, (1280,720))
+        video_out = cv2.VideoWriter('output_images/'+fname.split('/')[-1],fourcc, 25, (1280,720))
 
         if cap.isOpened():
             ret, img = cap.read()
@@ -430,7 +430,7 @@ def main():
         cv2.waitKey(250)
 
     #Process all videos
-    for fvideo in glob.glob('challenge_video*.mp4'):
+    for fvideo in glob.glob('project_video*.mp4'):
         det.processVideo(fvideo)
 
 if __name__ == '__main__':
